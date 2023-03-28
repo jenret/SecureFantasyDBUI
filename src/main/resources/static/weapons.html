@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weapons</title>
+    <script type="text/javascript">
+        var authHeaderValue = null;
+        var username = null;
+        var password = null;
+
+        //this is the function for the login
+        function login() {
+            username = document.getElementById('txtUsername').value;
+            password = document.getElementById('txtPassword').value;
+            authHeaderValue = "Basic " + btoa(username + ":" + password);
+
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("GET", "http://localhost:8081/weapon/login");
+            xmlHttp.setRequestHeader('Authorization', authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("LOGIN SUCCESS");
+                    document.getElementById("lblMsg").innerHTML = "Welcome " + username;
+                    showLoginForm(false);
+                    userStorage(username, password);
+                } else if (this.readyState == XMLHttpRequest.DONE && this.status == 401) {
+                    document.getElementById("lblMsg").innerHTML = "INVALID USERNAME/PASSWORD";
+                    showLoginForm(true);
+                }
+            }
+            xmlHttp.send();
+        }
+
+        function showLoginForm(bTF) {
+            if (bTF == true) {
+                document.getElementById('frmLogin').style.visibility = "visible";
+                document.getElementById('frmMain').style.visibility = "hidden";
+            } else {
+                document.getElementById('frmLogin').style.visibility = "hidden";
+                document.getElementById('frmMain').style.visibility = "visible";
+            }
+            txtUsername = "";
+            txtPassword = "";
+        }
+
+        function userStorage(strUsername, strPassword) {
+            sessionStorage.setItem("username", strUsername);
+            sessionStorage.setItem("password", strPassword);
+        }
+
+        function createWeapon() {
+            var name = document.getElementById("weapon_name").value;
+            var weapon = {
+                "name": name
+            }
+
+            console.log("Start the POST");
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("POST", "http://localhost:8081/weapon");
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    getWeapons();
+                }
+            }
+            xmlHttp.send(JSON.stringify(weapon));
+            var name = document.getElementById("weapon_name").value = "";
+        }
+
+        function updateWeapon() {
+            var name = document.getElementById("character_name").value;
+            var weapon = {
+                "name": name
+            }
+            //ajax
+            console.log("Starting the PUT");
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("PUT", "http://localhost:8081/weapon/" + id);
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("success in posting weapon");
+                    getWeapons();
+                }
+            }
+            xmlHttp.send(JSON.stringify(weapon));
+        }
+
+        function getWeapons() {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    var weapons = JSON.parse(this.responseText);
+                    renderWeapons(weapons);
+                }
+            }
+            xmlHttp.open("GET", "http://localhost:8081/weapon/findAll", true);
+            xmlHttp.send();
+        }
+
+        function renderWeapons(weapons) {
+            var weapTable = document.getElementById("tableArea");
+            weapTable.innerHTML = "";
+            weapTable +=
+                "<table>" +
+                "<tr>" +
+                "<th>ID</th>" +
+                "<th>Name</th></tr>"
+            for (var weapon of weapons) {
+                var weapHtml = "<tr><td>"
+                    + weapon.id + "</td><td>"
+                    + weapon.name + "</td></tr>";
+                weapTable.innerHTML += weapHtml;
+            }
+        }
+
+        function find() {
+            console.log("find");
+            var id = document.getElementById("find_id").value;
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    var weapon = JSON.parse(this.responseText);
+                    weapon_id.value = weapon.id;
+                    weapon_name.value = weapon.name;
+                }
+            }
+            xmlHttp.open("GET", "http://localhost:8081/weapon/" + id, true);
+            xmlHttp.send();
+        }
+
+        function deleteWeapon() {
+            console.log("into delete");
+            var id = document.getElementById("find_id").value;
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("DELETE", "http://localhost:8081/weapon/" + id);
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("success in posting weapon");
+                    getWeapons();
+                }
+            }
+            xmlHttp.send(); //don't need to send
+        }
+
+        window.onload = function () {
+            getWeapons();
+        }
+    </script>
+</head>
+<body>
+<nav>
+    <a href="/index.html">Home</a>
+    <a href="/characters.html">Characters</a>
+    <a href="/weapons.html">Weapons</a>
+    <a href="/locations.html">Locations</a>
+</nav>
+<div id="frmLogin">
+    <h3>Login:</h3>
+    <label>Username:</label>
+    <input type="text" id="txtUsername"/>
+    <br>
+    <label>Password:</label>
+    <input type="text" id="txtPassword"/>
+    <button onclick="login();">Login</button>
+</div>
+<div id="lblMsg"></div>
+<br>
+<div id="frmMain">
+    <div id="tableArea">
+    </div>
+    <div>
+        <label>Weapon Name: </label>
+        <input type="text" id="weapon_name"/>
+        <br/>
+        <button onclick="createWeapon();">Add Weapon</button>
+        <button onclick="updateWeapon();">Update Weapon</button>
+        id: &nbsp<input type="text" style="width: 20px;" id="find_id"/>
+        <button onclick="find();">Find</button>
+        <button onclick="deleteWeapon();">Delete</button>
+    </div>
+    <button onclick="showLoginForm(true);">Sign Out</button>
+</div>
+</body>
+</html>

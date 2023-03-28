@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Locations</title>
+    <script type="text/javascript">
+        var authHeaderValue = null;
+        var username = null;
+        var password = null;
+
+        //this is the function for the login
+        function login() {
+            username = document.getElementById('txtUsername').value;
+            password = document.getElementById('txtPassword').value;
+            authHeaderValue = "Basic " + btoa(username + ":" + password);
+
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("GET", "http://localhost:8081/location/login");
+            xmlHttp.setRequestHeader('Authorization', authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("LOGIN SUCCESS");
+                    document.getElementById("lblMsg").innerHTML = "Welcome " + username;
+                    showLoginForm(false);
+                    userStorage(username, password);
+                } else if (this.readyState == XMLHttpRequest.DONE && this.status == 401) {
+                    document.getElementById("lblMsg").innerHTML = "INVALID USERNAME/PASSWORD";
+                    showLoginForm(true);
+                }
+            }
+            xmlHttp.send();
+        }
+
+        function showLoginForm(bTF) {
+            if (bTF == true) {
+                document.getElementById('frmLogin').style.visibility = "visible";
+                document.getElementById('frmMain').style.visibility = "hidden";
+            } else {
+                document.getElementById('frmLogin').style.visibility = "hidden";
+                document.getElementById('frmMain').style.visibility = "visible";
+            }
+            txtUsername = "";
+            txtPassword = "";
+        }
+
+        function userStorage(strUsername, strPassword) {
+            sessionStorage.setItem("username", strUsername);
+            sessionStorage.setItem("password", strPassword);
+        }
+
+        function createLocation() {
+            var name = document.getElementById("location_name").value;
+            var location = {
+                "name": name
+            }
+
+            console.log("Start the POST");
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("POST", "http://localhost:8081/location");
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    getLocations();
+                }
+            }
+            xmlHttp.send(JSON.stringify(location));
+            var name = document.getElementById("location_name").value = "";
+        }
+
+        function updateLocation() {
+            var name = document.getElementById("location_name").value;
+            var location = {
+                "name": name
+            }
+            //ajax
+            console.log("Starting the PUT");
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("PUT", "http://localhost:8081/location/" + id);
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("success in posting location");
+                    getLocations();
+                }
+            }
+            xmlHttp.send(JSON.stringify(location));
+        }
+
+        function getLocations() {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    var locations = JSON.parse(this.responseText);
+                    renderLocations(locations);
+                }
+            }
+            xmlHttp.open("GET", "http://localhost:8081/location/findAll", true);
+            xmlHttp.send();
+        }
+
+        function renderLocations(locations) {
+            var locTable = document.getElementById("tableArea");
+            locTable.innerHTML = "";
+            locTable +=
+                "<table>" +
+                "<tr>" +
+                "<th>ID</th>" +
+                "<th>Name</th></tr>"
+            for (var location of locations) {
+                var locHtml = "<tr><td>"
+                    + location.id + "</td><td>"
+                    + location.name + "</td></tr>";
+                locTable.innerHTML += locHtml;
+            }
+        }
+
+        function find() {
+            console.log("find");
+            var id = document.getElementById("find_id").value;
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    var location = JSON.parse(this.responseText);
+                    location_id.value = location.id;
+                    location_name.value = location.name;
+                }
+            }
+            xmlHttp.open("GET", "http://localhost:8081/location/" + id, true);
+            xmlHttp.send();
+        }
+
+        function deleteLocation() {
+            console.log("into delete");
+            var id = document.getElementById("find_id").value;
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("DELETE", "http://localhost:8081/location/" + id);
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("success in posting location");
+                    getLocations();
+                }
+            }
+            xmlHttp.send(); //don't need to send
+        }
+
+        window.onload = function () {
+            getLocations();
+        }
+    </script>
+</head>
+<body>
+<nav>
+    <a href="/index.html">Home</a>
+    <a href="/characters.html">Characters</a>
+    <a href="/weapons.html">Weapons</a>
+    <a href="/locations.html">Locations</a>
+</nav>
+<div id="frmLogin">
+    <h3>Login:</h3>
+    <label>Username:</label>
+    <input type="text" id="txtUsername"/>
+    <br>
+    <label>Password:</label>
+    <input type="text" id="txtPassword"/>
+    <button onclick="login();">Login</button>
+</div>
+<div id="lblMsg"></div>
+<br>
+<div id="frmMain">
+    <div id="tableArea">
+    </div>
+    <div>
+        <label>Location Name: </label>
+        <input type="text" id="location_name"/>
+        <br/>
+        <button onclick="createLocation();">Add Location</button>
+        <button onclick="updateLocation();">Update Location</button>
+        id: &nbsp<input type="text" style="width: 20px;" id="find_id"/>
+        <button onclick="find();">Find</button>
+        <button onclick="deleteLocation();">Delete</button>
+    </div>
+    <button onclick="showLoginForm(true);">Sign Out</button>
+</div>
+</body>
+</html>

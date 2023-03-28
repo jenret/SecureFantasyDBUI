@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Characters</title>
+    <script type="text/javascript">
+        var authHeaderValue = null;
+        var username = null;
+        var password = null;
+
+        //this is the function for the login
+        function login() {
+            username = document.getElementById('txtUsername').value;
+            password = document.getElementById('txtPassword').value;
+            authHeaderValue = "Basic " + btoa(username + ":" + password);
+
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("GET", "http://localhost:8081/character/login");
+            xmlHttp.setRequestHeader('Authorization', authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("LOGIN SUCCESS");
+                    document.getElementById("lblMsg").innerHTML = "Welcome " + username;
+                    showLoginForm(false);
+                    userStorage(username, password);
+                } else if (this.readyState == XMLHttpRequest.DONE && this.status == 401) {
+                    document.getElementById("lblMsg").innerHTML = "INVALID USERNAME/PASSWORD";
+                    showLoginForm(true);
+                }
+            }
+            xmlHttp.send();
+        }
+
+        function  showLoginForm(bTF) {
+            if (bTF == true) {
+                document.getElementById('frmLogin').style.visibility = "visible";
+                document.getElementById('frmMain').style.visibility = "hidden";
+            }
+            else {
+                document.getElementById('frmLogin').style.visibility = "hidden";
+                document.getElementById('frmMain').style.visibility = "visible";
+            }
+            txtUsername = "";
+            txtPassword = "";
+        }
+
+        function userStorage(strUsername, strPassword) {
+            sessionStorage.setItem("username", strUsername);
+            sessionStorage.setItem("password", strPassword);
+        }
+
+        function createCharacter() {
+            console.log("My balls are aching")
+            var name = document.getElementById("character_name").value;
+            var classname = document.getElementById("character_class").value;
+            var character = {
+                "name": name,
+                "classname": classname
+            }
+
+            console.log("Start the POST");
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("POST", "http://localhost:8081/character");
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    getCharacters();
+                }
+            }
+            xmlHttp.send(JSON.stringify(character));
+            var name = document.getElementById("character_name").value = "";
+            var charClass = document.getElementById("character_class").value = "";
+        }
+
+        function updateCharacter() {
+            var name = document.getElementById("character_name").value;
+            var classname = document.getElementById("character_class").value;
+            var character = {
+                "name": name,
+                "classname": classname
+            }
+            //ajax
+            console.log("Starting the PUT");
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("PUT", "http://localhost:8081/character/" + id);
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("success in posting character");
+                    getCharacters();
+                }
+            }
+            xmlHttp.send(JSON.stringify(character));
+        }
+
+        function getCharacters() {
+            console.log("Getting entries");
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    var characters = JSON.parse(this.responseText);
+                    renderCharacters(characters);
+                }
+            }
+            xmlHttp.open("GET", "http://localhost:8081/character/findAll", true);
+            xmlHttp.send();
+        }
+
+        function renderCharacters(characters) {
+            var charTable = document.getElementById("tableArea");
+            charTable.innerHTML = "";
+            charTable +=
+                "<table>" +
+                "<tr>" +
+                "<th>ID</th>" +
+                "<th>Name</th>" +
+                "<th>Class</th></tr>"
+            for (var character of characters) {
+                var charHtml = "<tr><td>"
+                    + character.id + "</td><td>"
+                    + character.name + "</td><td>"
+                    + character.classname + "</td></tr>";
+                charTable.innerHTML += charHtml;
+            }
+        }
+
+        function find() {
+            console.log("find");
+            var id = document.getElementById("find_id").value;
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.onreadystatechange = function () {
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    var character = JSON.parse(this.responseText);
+                    character_id.value = character.id;
+                    character_name.value = character.name;
+                    character_class.value = character.classname;
+                }
+            }
+            xmlHttp.open("GET", "http://localhost:8081/character/" + id, true);
+            xmlHttp.send();
+        }
+
+        function deleteCharacter() {
+            console.log("into delete");
+            var id = document.getElementById("find_id").value;
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.setRequestHeader("Authorization", authHeaderValue);
+            xmlHttp.open("DELETE", "http://localhost:8081/character/" + id);
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.onreadystatechange = function () {
+                console.log("ready state: ", this.status);
+                if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                    console.log("success in posting character");
+                    getCharacters();
+                }
+            }
+            xmlHttp.send(); //don't need to send
+        }
+
+        window.onload = function () {
+            getCharacters();
+        }
+    </script>
+</head>
+<body>
+<nav>
+    <a href="/index.html">Home</a>
+    <a href="/characters.html">Characters</a>
+    <a href="/weapons.html">Weapons</a>
+    <a href="/locations.html">Locations</a>
+</nav>
+<div id="frmLogin">
+    <h3>Login:</h3>
+    <label>Username:</label>
+    <input type="text" id="txtUsername"/>
+    <br>
+    <label>Password:</label>
+    <input type="text" id="txtPassword"/>
+    <button onclick="login();">Login</button>
+</div>
+<div id="lblMsg"></div>
+<br>
+<div id="frmMain">
+    <div id="tableArea">
+    </div>
+    <div>
+        <label>Character Name: </label>
+        <input type="text" id="character_name"/>
+        <br/>
+        <label>Character Class: </label>
+        <input type="text" id="character_class"/>
+        <button onclick="createCharacter();">Add Character</button>
+        <button onclick="updateCharacter();">Update Character</button>
+        <br/>
+        id: &nbsp<input type="text" style="width: 20px;" id="find_id"/>
+        <button onclick="find();">Find</button>
+        <button onclick="deleteCharacter();">Delete</button>
+    </div>
+    <button onclick="showLoginForm(true);">Sign Out</button>
+</div>
+</body>
+</html>
